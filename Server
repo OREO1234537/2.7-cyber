@@ -1,0 +1,71 @@
+"""
+Author: Roy Goldstaub
+Date: 1.12.23
+Description:
+"""
+
+from server_functions import *
+from protocol import *
+
+QUEUE_LEN = 1
+
+
+def main():
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        server_socket.bind(('0.0.0.0', 1729))
+        server_socket.listen(QUEUE_LEN)
+        while True:
+            client_socket, client_address = server_socket.accept()
+            logging.debug('A client has connected to the server || address: ' + ''.join(map(str, client_address)))
+            try:
+                while True:
+                    request = recive_prot(client_socket)
+                    com = request[0]
+                    payload = request[1]
+                    logging.debug('The command ' + com + ' has been received')
+                    print('Received the command: ' + com)
+                    reply = ''
+                    if com == 'DIR':
+                        reply = dir_com(payload)
+                    elif com == 'DELETE':
+                        reply = del_com(payload)
+                    elif com == 'COPY':
+                        path1 = payload.split('|')[0]
+                        path2 = payload.split('|')[1]
+                        reply = copy_com(path1, path2)
+                    elif com == 'EXECUTE':
+                        reply = execute_program(payload)
+                    elif com == 'TAKE_SCREENSHOT':
+                        reply = screenshot()
+                    elif com == 'EXIT':
+                        client_socket.send(send_prot('You were disconnected', reply))
+                        print('The client has been disconnected')
+                        break
+                    else:
+                        reply = 'Invalid command'
+                    client_socket.send(send_prot(com, reply))
+                    if com != 'TAKE_SCREENSHOT' and com != 'DIR':
+                        logging.debug('The message ' + com + ' + ' + reply + ' has been sent')
+                    elif com == 'DIR':
+                        logging.debug('The message ' + com + ' and the reply:')
+                        li = reply.split(', ')
+                        for file in li:
+                            logging.debug(file)
+                            print(file)
+                    else:
+                        logging.debug('The message ' + com + ' + {screenshot} has been sent')
+            except socket.error as err:
+                print('received socket error on client socket' + str(err))
+            finally:
+                client_socket.close()
+                logging.debug('The client has been disconnected')
+    except socket.error as err:
+        print('received socket error on server socket' + str(err))
+    finally:
+        server_socket.close()
+    execute_program('C:/Windows/System32/notepad.exe')
+
+
+if __name__ == '__main__':
+    main()
