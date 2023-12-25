@@ -1,0 +1,58 @@
+"""
+Author: Roy Goldstaub
+Date: 1.12.23
+Description:
+encodes and decodes a message according to the protocol
+"""
+
+import socket
+
+
+def send_prot(cmd, msg):
+    """
+    makes the message fit the protocol
+    :param cmd: the command
+    :type: string
+    :param msg:  message
+    :type: string
+    :return: final message
+    :rtype: bytes
+    """
+    cmd_len = len(cmd)
+    msg_len = len(msg)
+    total_message = (str(cmd_len) + '!' + cmd + str(msg_len) + '!' + msg).encode()
+    return total_message
+
+
+def recive_prot(my_socket):
+    """
+    receives protocol encoded message and returns the decoded message and command
+    :param my_socket: the socket to be received from
+    :type: socket
+    :return: the command and the message
+    :rtype: tuple
+    """
+    temp_char = ''
+    com_len = ''
+    message_len = ''
+    try:
+        while temp_char != '!':
+            temp_char = my_socket.recv(1).decode()
+            com_len += temp_char
+        com_len = com_len[:-1]
+
+        cmd = my_socket.recv(int(com_len)).decode()
+
+        temp_char = ''
+
+        while temp_char != '!':
+            temp_char = my_socket.recv(1).decode()
+            message_len += temp_char
+        message_len = message_len[:-1]
+
+        msg = my_socket.recv(int(message_len)).decode()
+
+        final_message = (cmd, msg)
+    except socket.error:
+        final_message = ('Error', '')
+    return final_message
